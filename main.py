@@ -37,3 +37,17 @@ def sign_up(auth_request: AuthRequest):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@app.post("/auth/login")
+def sign_in(auth_request: AuthRequest):
+    if not auth_request.email or not auth_request.password:
+        raise HTTPException(status_code=400, detail="Email and password are required")
+
+    try:
+        response = supabase.auth.sign_in_with_password({
+            "email": auth_request.email,
+            "password": auth_request.password
+        })
+        return {"message": "User signed in successfully", "user": response.user.email}
+
+    except Exception as e:
+        raise HTTPException(status_code=401, detail={"error": "Invalid login credentials"})
