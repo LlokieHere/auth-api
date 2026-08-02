@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from supabase import create_client, Client
 from pydantic import BaseModel
 from fastapi import HTTPException
+from fastapi import FastAPI, Header
 
 class AuthRequest(BaseModel):
     email: str
@@ -51,3 +52,21 @@ def sign_in(auth_request: AuthRequest):
 
     except Exception as e:
         raise HTTPException(status_code=401, detail={"error": "Invalid login credentials"})
+
+@app.get('/public/info')
+def public_info():
+    return{"message": "Welcome stranger! This info is public." }
+
+@app.get('/protected/profile')
+def protected_profile(authorization: str = Header(None)):
+    if not authorization: #if authorization header is missing, return 401
+         raise HTTPException(status_code=401, detail={"error": "Access token required"})
+
+    if not authorization.startswith("Bearer "): #if authorization header does not start with "Bearer ", return 401
+        raise HTTPException(status_code=401, detail={"error": "Access token required"})
+
+    # Split the authorization header to get the token
+    bearer, token = authorization.split(" ", 1)
+
+    return {"message": "token received (not yet verified)"}
+
