@@ -6,12 +6,15 @@ from pydantic import BaseModel
 from fastapi import HTTPException
 from fastapi import FastAPI, Header
 from fastapi import Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 class AuthRequest(BaseModel):
     email: str
     password: str
 
 load_dotenv()
+
+security = HTTPBearer()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
@@ -32,7 +35,7 @@ def get_current_user(authorization: str = Header(None)):
         user = supabase.auth.get_user(token)
         return user
     except Exception as e:
-        raise HTTPException(status_code=401, detail={"error": "Invalid or expired token"})
+        raise HTTPException(status_code=401, detail={"error": "Invalid or expired token"})  
 
 @app.on_event("startup")
 def startup_check():
@@ -75,7 +78,7 @@ def sign_in(auth_request: AuthRequest):
 def public_info():
     return {"message": "Welcome stranger! This info is public."}
 
-@app.get('/protected/profile')
+@app.get('/protected/profile', dependencies=[Depends(security)])
 def protected_profile(user = Depends(get_current_user)):
     return {
         "message": "Access granted",
@@ -86,7 +89,7 @@ def protected_profile(user = Depends(get_current_user)):
         }
     }
 
-@app.get('/protected/dashboard')
+@app.get('/protected/dashboard', dependencies=[Depends(security)])
 def protected_dashboard(user = Depends(get_current_user)):
     return {
         "message": "Welcome to your dashboard",
@@ -97,7 +100,7 @@ def protected_dashboard(user = Depends(get_current_user)):
         }
     }
 
-@app.post('/auth/logout')
+@app.post('/auth/logout', dependencies=[Depends(security)])
 def logout(user = Depends(get_current_user)):
     try:
         supabase.auth.sign_out()
