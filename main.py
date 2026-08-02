@@ -46,9 +46,13 @@ def sign_in(auth_request: AuthRequest):
     try:
         response = supabase.auth.sign_in_with_password({
             "email": auth_request.email,
-            "password": auth_request.password
+            "password": auth_request.password,
+            
         })
-        return {"message": "User signed in successfully", "user": response.user.email}
+        return {"message": "User signed in successfully", 
+                "user": response.user.email, 
+                "access_token": response.session.access_token,
+                "refresh_token": response.session.refresh_token}
 
     except Exception as e:
         raise HTTPException(status_code=401, detail={"error": "Invalid login credentials"})
@@ -68,5 +72,18 @@ def protected_profile(authorization: str = Header(None)):
     # Split the authorization header to get the token
     bearer, token = authorization.split(" ", 1)
 
-    return {"message": "token received (not yet verified)"}
+    try:
+        # Verify the token using Supabase's auth.get_user method
+        user = supabase.auth.get_user(token)
+        return {
+            "message": "Access granted",
+            "user": {
+                "id": user.user.id,
+                "email": user.user.email,
+                "created_at": user.user.created_at
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=401, detail={"error": "Invalid or expired token"})
+
 
